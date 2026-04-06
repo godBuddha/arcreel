@@ -35,6 +35,7 @@ interface TimelineCanvasProps {
   onUpdatePrompt?: (segmentId: string, field: string, value: unknown, scriptFile?: string) => void;
   onGenerateStoryboard?: (segmentId: string, scriptFile?: string) => void;
   onGenerateVideo?: (segmentId: string, scriptFile?: string) => void;
+  durationOptions?: number[];
   onRestoreStoryboard?: () => Promise<void> | void;
   onRestoreVideo?: () => Promise<void> | void;
 }
@@ -55,6 +56,7 @@ export function TimelineCanvas({
   episodeScript,
   scriptFile,
   projectData,
+  durationOptions,
   onUpdatePrompt,
   onGenerateStoryboard,
   onGenerateVideo,
@@ -168,6 +170,7 @@ export function TimelineCanvas({
                   characters={projectData.characters}
                   clues={projectData.clues}
                   projectName={projectName}
+                  durationOptions={durationOptions}
                   onUpdatePrompt={onUpdatePrompt && ((id, field, value) => onUpdatePrompt(id, field, value, scriptFile))}
                   onGenerateStoryboard={onGenerateStoryboard && ((id) => onGenerateStoryboard(id, scriptFile))}
                   onGenerateVideo={onGenerateVideo && ((id) => onGenerateVideo(id, scriptFile))}
