@@ -45,7 +45,7 @@ RATE_LIMIT_DEFAULT = os.environ.get("RATE_LIMIT_DEFAULT", "200/minute")
 limiter = Limiter(
     key_func=_get_key,
     default_limits=[RATE_LIMIT_DEFAULT],
-    storage_uri="memory://",  # In-memory cho dev; production nên dùng Redis
+    storage_uri=os.environ.get("REDIS_URL", "memory://"),
 )
 
 

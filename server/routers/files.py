@@ -21,6 +21,7 @@ from lib.image_utils import normalize_uploaded_image
 from lib.project_change_hints import emit_project_change_batch, project_change_source
 from lib.project_manager import ProjectManager
 from server.auth import CurrentUser
+from server.rate_limiter import RATE_LIMIT_UPLOAD, limiter
 
 router = APIRouter()
 
@@ -75,9 +76,11 @@ async def serve_project_file(project_name: str, path: str, request: Request, _t:
 
 
 @router.post("/projects/{project_name}/upload/{upload_type}")
+@limiter.limit(RATE_LIMIT_UPLOAD)
 async def upload_file(
     project_name: str,
     upload_type: str,
+    request: Request,
     _user: CurrentUser,
     _t: Translator,
     file: UploadFile = File(...),
@@ -550,7 +553,8 @@ async def delete_draft(project_name: str, episode: int, step_num: int, _user: Cu
 
 
 @router.post("/projects/{project_name}/style-image")
-async def upload_style_image(project_name: str, _user: CurrentUser, _t: Translator, file: UploadFile = File(...)):
+@limiter.limit(RATE_LIMIT_UPLOAD)
+async def upload_style_image(project_name: str, request: Request, _user: CurrentUser, _t: Translator, file: UploadFile = File(...)):
     """
     上传风格参考图并分析风格
 

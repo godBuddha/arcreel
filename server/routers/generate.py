@@ -10,7 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from lib import PROJECT_ROOT
@@ -26,6 +26,7 @@ from lib.storyboard_sequence import (
     get_storyboard_items,
 )
 from server.auth import CurrentUser
+from server.rate_limiter import RATE_LIMIT_GENERATE, limiter
 
 router = APIRouter()
 
@@ -96,10 +97,12 @@ def _snapshot_image_backend(project_name: str) -> dict:
 
 
 @router.post("/projects/{project_name}/generate/storyboard/{segment_id}")
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def generate_storyboard(
     project_name: str,
     segment_id: str,
     req: GenerateStoryboardRequest,
+    request: Request,
     _user: CurrentUser,
     _t: Translator,
 ):
@@ -170,10 +173,12 @@ async def generate_storyboard(
 
 
 @router.post("/projects/{project_name}/generate/video/{segment_id}")
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def generate_video(
     project_name: str,
     segment_id: str,
     req: GenerateVideoRequest,
+    request: Request,
     _user: CurrentUser,
     _t: Translator,
 ):
@@ -246,10 +251,12 @@ async def generate_video(
 
 
 @router.post("/projects/{project_name}/generate/character/{char_name}")
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def generate_character(
     project_name: str,
     char_name: str,
     req: GenerateCharacterRequest,
+    request: Request,
     _user: CurrentUser,
     _t: Translator,
 ):
@@ -300,10 +307,12 @@ async def generate_character(
 
 
 @router.post("/projects/{project_name}/generate/clue/{clue_name}")
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def generate_clue(
     project_name: str,
     clue_name: str,
     req: GenerateClueRequest,
+    request: Request,
     _user: CurrentUser,
     _t: Translator,
 ):

@@ -4,7 +4,7 @@ Assistant session APIs.
 
 import logging
 from collections.abc import AsyncIterator, Callable
-from typing import Literal
+from typing import Any, Literal
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,7 @@ from server.agent_runtime.models import SessionMeta
 from server.agent_runtime.service import AssistantService
 from server.agent_runtime.session_manager import SessionCapacityError
 from server.auth import CurrentUser, CurrentUserFlexible
+from server.rate_limiter import RATE_LIMIT_AGENT, limiter
 
 router = APIRouter()
 
@@ -65,7 +66,14 @@ class AnswerQuestionRequest(BaseModel):
     answers: dict[str, str] = Field(default_factory=dict)
 
 
+class ApprovalDecisionRequest(BaseModel):
+    decision: Literal["allow", "deny"]
+    updated_input: dict[str, Any] | None = None
+    message: str | None = None
+
+
 @router.post("/sessions/send")
+@limiter.limit(RATE_LIMIT_AGENT)
 async def send_message(
     project_name: str,
     req: SendRequest,
@@ -170,7 +178,8 @@ async def get_snapshot(project_name: str, session_id: str, _user: CurrentUser, _
 
 
 @router.post("/sessions/{session_id}/interrupt")
-async def interrupt_session(project_name: str, session_id: str, _user: CurrentUser, _t: Translator):
+@limiter.limit(RATE_LIMIT_AGENT)
+async def interrupt_session(project_name: str, session_id: str, request: Request, _user: CurrentUser, _t: Translator):
     try:
         service = get_assistant_service()
         meta = await _validate_session_ownership(service, session_id, project_name, _t)
@@ -188,11 +197,13 @@ async def interrupt_session(project_name: str, session_id: str, _user: CurrentUs
 
 
 @router.post("/sessions/{session_id}/questions/{question_id}/answer")
+@limiter.limit(RATE_LIMIT_AGENT)
 async def answer_question(
     project_name: str,
     session_id: str,
     question_id: str,
     req: AnswerQuestionRequest,
+    request: Request,
     _user: CurrentUser,
     _t: Translator,
 ):
@@ -205,6 +216,40 @@ async def answer_question(
             session_id=session_id,
             question_id=question_id,
             answers=req.answers,
+            meta=meta,
+        )
+        return result
+    except HTTPException:
+        raise
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=_t("session_not_found", session_id=session_id))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.exception("请求处理失败")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/sessions/{session_id}/approvals/{request_id}/decision")
+@limiter.limit(RATE_LIMIT_AGENT)
+async def decide_tool_approval(
+    project_name: str,
+    session_id: str,
+    request_id: str,
+    req: ApprovalDecisionRequest,
+    request: Request,
+    _user: CurrentUser,
+    _t: Translator,
+):
+    try:
+        service = get_assistant_service()
+        meta = await _validate_session_ownership(service, session_id, project_name, _t)
+        result = await service.answer_tool_approval(
+            session_id=session_id,
+            request_id=request_id,
+            decision=req.decision,
+            updated_input=req.updated_input,
+            message=req.message,
             meta=meta,
         )
         return result

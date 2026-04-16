@@ -11,7 +11,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from lib import PROJECT_ROOT
@@ -23,6 +23,7 @@ from lib.grid_manager import GridManager
 from lib.project_manager import ProjectManager
 from lib.storyboard_sequence import get_storyboard_items, group_scenes_by_segment_break
 from server.auth import CurrentUser
+from server.rate_limiter import RATE_LIMIT_GENERATE, limiter
 
 router = APIRouter(prefix="/projects/{project_name}", tags=["grids"])
 
@@ -79,10 +80,12 @@ class GenerateGridResponse(BaseModel):
 
 
 @router.post("/generate/grid/{episode}", response_model=GenerateGridResponse)
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def generate_grid(
     project_name: str,
     episode: int,
     req: GenerateGridRequest,
+    request: Request,
     _user: CurrentUser,
 ):
     """
@@ -259,7 +262,8 @@ async def get_grid(project_name: str, grid_id: str, _user: CurrentUser):
 
 
 @router.post("/grids/{grid_id}/regenerate")
-async def regenerate_grid(project_name: str, grid_id: str, _user: CurrentUser):
+@limiter.limit(RATE_LIMIT_GENERATE)
+async def regenerate_grid(project_name: str, grid_id: str, request: Request, _user: CurrentUser):
     """重置宫格图状态并重新入队生成任务。"""
     try:
         from server.routers.generate import _snapshot_image_backend

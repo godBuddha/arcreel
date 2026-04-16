@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from lib.i18n import Translator, get_locale
 from server.agent_runtime.service import AssistantService
+from server.rate_limiter import RATE_LIMIT_AGENT, limiter
 from server.agent_runtime.session_manager import SessionCapacityError
 from server.auth import CurrentUser
 from server.routers.assistant import get_assistant_service
@@ -124,6 +125,7 @@ async def _collect_reply(
 
 
 @router.post("/agent/chat")
+@limiter.limit(RATE_LIMIT_AGENT)
 async def agent_chat(
     body: AgentChatRequest,
     request: Request,
