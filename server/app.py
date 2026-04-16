@@ -44,6 +44,7 @@ from server.routers import (
 )
 from server.routers import auth as auth_router
 from server.rate_limiter import setup_rate_limiter
+from server.observability import setup_telemetry, metrics_handler
 from server.services.project_events import ProjectEventService
 
 # 初始化日志
@@ -55,6 +56,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # Startup
+    setup_telemetry(app)  # OpenTelemetry — no-op if OTLP_ENDPOINT not set
     ensure_auth_password()
 
     # Run Alembic migrations (auto-creates tables on first start)
@@ -229,6 +231,12 @@ def create_generation_worker() -> GenerationWorker:
 async def health_check():
     """健康检查 / Health Check / Kiểm tra sức khỏe"""
     return {"status": "ok", "message": "视频项目管理 WebUI 运行正常"}
+
+
+@app.get("/metrics", include_in_schema=False)
+async def prometheus_metrics(request: Request):
+    """Prometheus metrics endpoint — scrape tại GET /metrics (không cần auth)."""
+    return await metrics_handler(request)
 
 
 @app.get("/health/detailed", include_in_schema=False)
