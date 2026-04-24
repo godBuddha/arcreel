@@ -98,8 +98,8 @@ ConfigService（`service.py`）→ Repository（持久化 + 密钥脱敏）→ R
 
 ### lib/i18n/ — 国际化
 
-后端翻译层，支持 `zh`/`en` 两种语言：
-- `{zh,en}/errors.py` — 错误与校验消息，`{zh,en}/providers.py` — 供应商名称与描述
+后端翻译层，支持 `zh`/`en`/`vi` 三种语言：
+- `{zh,en,vi}/errors.py` — 错误与校验消息，`{zh,en,vi}/providers.py` — 供应商名称与描述
 - `Translator` 类型 = `Annotated[Callable[..., str], Depends(get_translator)]`，从 `Accept-Language` 解析语言
 - 路由中通过 `_t: Translator` 依赖注入，调用 `_t("key", param=value)` 获取翻译文本
 
@@ -110,7 +110,7 @@ ConfigService（`service.py`）→ Repository（持久化 + 密钥脱敏）→ R
 - 状态管理：`zustand`（stores 在 `frontend/src/stores/`）
 - 路径别名：`@/` → `frontend/src/`
 - Vite 代理：`/api` → `http://127.0.0.1:1241`
-- i18n：`i18next` + `react-i18next`，翻译文件在 `frontend/src/i18n/{zh,en}/`，命名空间 `common`/`dashboard`/`auth`/`errors`
+- i18n：`i18next` + `react-i18next`，翻译文件在 `frontend/src/i18n/{zh,en,vi}/`，命名空间 `common`/`dashboard`/`auth`/`errors`
 
 ## 关键设计模式
 
@@ -147,7 +147,7 @@ ConfigService（`service.py`）→ Repository（持久化 + 密钥脱敏）→ R
 
 ## 国际化 (i18n) 规范
 
-- 禁止硬编码中文字符串，新增面向用户的文本须同时添加 `zh`/`en` 翻译 key
+- 禁止硬编码中文字符串，新增面向用户的文本须同时添加 `zh`/`en`/`vi` 翻译 key
 - 后端：`_t: Translator` 依赖注入；前端：`useTranslation("namespace")`
 - CI 有 `test_i18n_consistency.py` 校验 key 漂移
 
